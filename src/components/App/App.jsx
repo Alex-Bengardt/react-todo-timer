@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState } from 'react'
 
 import NewTaskForm from '../NewTaskForm'
 import TaskList from '../TaskList'
@@ -6,100 +6,77 @@ import Footer from '../Footer'
 
 let lastId = 0
 
-export default class App extends React.Component {
-  constructor() {
-    super()
-    this.state = {
-      todoData: [],
+export default function App() {
+  const [tasks, setTasks] = useState([])
+
+  const [selectedFilter, setSelectedFilter] = useState('All')
+
+  function generateKey(pre) {
+    return `${pre}_${Math.floor(100000 + Math.random() * 900000)}`
+  }
+
+  function filterSelected(filterName) {
+    setSelectedFilter(filterName)
+  }
+
+  function inputActivated(value) {
+    if (value.name.trim()) {
+      setTasks((tasksState) => [
+        {
+          name: value.name,
+          key: generateKey(value.name),
+          created: new Date(),
+          done: false,
+          editing: false,
+          seconds: value.min * 60 + value.sec,
+        },
+        ...tasksState,
+      ])
     }
   }
 
-  addItem(value) {
-    const data = {
-      label: value,
-      completed: false,
-      id: ++lastId,
-      hidden: false,
-      date: new Date(),
-    }
-
-    this.setState(({ todoData }) => ({
-      todoData: [...todoData, data],
-    }))
+  function taskOnDelete(taskKey) {
+    setTasks((tasksState) => tasksState.filter((task) => task.key !== taskKey))
   }
 
-  setComplitedTask(id) {
-    this.setState({
-      ...this.state,
-      todoData: this.state.todoData.map((todo) => {
-        if (todo.id === id) {
-          todo.completed = !todo.completed
-        }
-        return todo
-      }),
-    })
+  function taskOnDone(taskKey) {
+    setTasks((tasksState) => tasksState.map((task) => (task.key === taskKey ? { ...task, done: !task.done } : task)))
   }
 
-  deleteItem(id) {
-    this.setState({ todoData: this.state.todoData.filter((element) => element.id !== id) })
-  }
-
-  clearCompleted() {
-    this.setState(({ todoData }) => ({ todoData: todoData.filter((item) => !item.completed) }))
-  }
-
-  allTask() {
-    this.setState(({ todoData }) => ({
-      todoData: todoData.map((item) => {
-        item.hidden = false
-        return item
-      }),
-    }))
-  }
-
-  activeTask() {
-    this.setState(({ todoData }) => ({
-      todoData: todoData.map((item) => {
-        if (item.completed) {
-          item.hidden = true
-        } else {
-          item.hidden = false
-        }
-        return item
-      }),
-    }))
-  }
-  complitedTask() {
-    this.setState(({ todoData }) => ({
-      todoData: todoData.map((item) => {
-        if (item.completed) {
-          item.hidden = false
-        } else {
-          item.hidden = true
-        }
-        return item
-      }),
-    }))
-  }
-  render() {
-    return (
-      <section className="todoapp">
-        <NewTaskForm addItem={this.addItem.bind(this)} />
-        <section className="main">
-          <TaskList
-            todoData={this.state.todoData}
-            setComplitedTask={this.setComplitedTask.bind(this)}
-            deleteItem={this.deleteItem.bind(this)}
-          />
-          <Footer
-            todoData={this.state.todoData}
-            clearCompleted={this.clearCompleted.bind(this)}
-            allTask={this.allTask.bind(this)}
-            activeTask={this.activeTask.bind(this)}
-            complitedTask={this.complitedTask.bind(this)}
-          />
-        </section>
-      </section>
+  function taskOnEdit(taskKey) {
+    setTasks((tasksState) =>
+      tasksState.map((task) => (task.key === taskKey ? { ...task, editing: !task.editing } : task))
     )
   }
+
+  function taskNameChanged(taskKey, newName) {
+    setTasks((tasksState) =>
+      tasksState.map((task) => (task.key === taskKey ? { ...task, name: newName, editing: false } : task))
+    )
+  }
+
+  function taskNameChangeCanceled(taskKey) {
+    setTasks((tasksState) => tasksState.map((task) => (task.key === taskKey ? { ...task, editing: false } : task)))
+  }
+
+  function clearCompleted() {
+    setTasks((tasksState) => tasksState.filter((task) => !task.done))
+  }
+
+  return (
+    <section className="todoapp">
+      <NewTaskForm inputActivated={inputActivated} />
+      <TaskList
+        tasks={tasks}
+        tasksFns={[taskOnDelete, taskOnDone, taskOnEdit, taskNameChanged, taskNameChangeCanceled]}
+        selectedFilter={selectedFilter}
+      />
+      <Footer
+        tasksCounter={tasks.length}
+        clearCompleted={clearCompleted}
+        onFilterSelect={filterSelected}
+        selectedFilter={selectedFilter}
+      />
+    </section>
+  )
 }

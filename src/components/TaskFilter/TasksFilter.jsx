@@ -1,64 +1,47 @@
 import React from 'react'
 import PropTypes from 'prop-types'
 
-import Task from '../Task'
-
-export default class TasksFilter extends React.Component {
-  constructor() {
-    super()
-    this.state = {
-      selected: 'all',
-    }
-  }
-
-  render() {
-    const { allTask, activeTask, complitedTask } = this.props
-
-    const showAll = () => {
-      allTask()
-      this.setState({ selected: 'all' })
-    }
-
-    const showActive = () => {
-      activeTask()
-      this.setState({ selected: 'active' })
-    }
-
-    const showCompleted = () => {
-      complitedTask()
-      this.setState({ selected: 'completed' })
-    }
-
-    return (
-      <ul className="filters">
-        <li>
-          <button onClick={showAll} className={this.state.selected === 'all' ? 'selected' : ''}>
-            All
-          </button>
-        </li>
-        <li>
-          <button onClick={showActive} className={this.state.selected === 'active' ? 'selected' : ''}>
-            Active
-          </button>
-        </li>
-        <li>
-          <button onClick={showCompleted} className={this.state.selected === 'completed' ? 'selected' : ''}>
-            Completed
-          </button>
-        </li>
-      </ul>
-    )
-  }
+export default function TasksFilter({ onFilterSelect, selectedFilter }) {
+  return (
+    <ul className="filters">
+      <li>
+        <button
+          type="button"
+          onClick={(e) => {
+            onFilterSelect(e.target.innerText)
+          }}
+          className={selectedFilter === 'All' ? 'selected' : null}
+        >
+          All
+        </button>
+      </li>
+      <li>
+        <button
+          type="button"
+          onClick={(e) => {
+            onFilterSelect(e.target.innerText)
+          }}
+          className={selectedFilter === 'Active' ? 'selected' : null}
+        >
+          Active
+        </button>
+      </li>
+      <li>
+        <button
+          type="button"
+          onClick={(e) => {
+            onFilterSelect(e.target.innerText)
+          }}
+          className={selectedFilter === 'Completed' ? 'selected' : null}
+        >
+          Completed
+        </button>
+      </li>
+    </ul>
+  )
 }
 
 TasksFilter.propTypes = {
-  allTask: PropTypes.func,
-  activeTask: PropTypes.func,
-  complitedTask: PropTypes.func,
-}
-
-Task.defaultProps = {
-  allTask: () => {},
-  activeTask: () => {},
-  complitedTask: () => {},
+  onFilterSelect: PropTypes.func.isRequired,
+  selectedFilter: PropTypes.string.isRequired,
 }

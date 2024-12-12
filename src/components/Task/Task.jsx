@@ -1,109 +1,117 @@
 import React from 'react'
 import PropTypes from 'prop-types'
-import { formatDistanceToNow } from 'date-fns'
+import { formatDistance } from 'date-fns'
+import { useEffect, useRef, useState } from 'react'
 
-export default class Task extends React.Component {
-  state = {
-    timer: 0,
-    isActiveTimer: true,
+export default function Task({ task, tasksFns, filtered = false }) {
+  const { name, done, editing, key, seconds } = task
+  const [taskOnDelete, taskOnDone, taskOnEdit, taskNameChanged, taskNameChangeCanceled] = tasksFns
+  const [changedName, setChangedName] = useState(name)
+  const [timerDate, setTimerDate] = useState(new Date(seconds * 1000))
+  const timerPaused = useRef(false)
+  const timerId = useRef(null)
+
+  timerPaused.current = done
+
+  let taskClass = ''
+  if (done) {
+    taskClass = 'completed'
+  } else if (editing) {
+    taskClass = 'editing'
   }
 
-  intervalId = null
+  useEffect(() => {
+    if (timerDate.getTime() === 0) {
+      clearInterval(timerId.current)
+      taskOnDone(key)
+    }
+  }, [timerDate])
 
-  componentDidUpdate(prevState) {
-    if (prevState.isActiveTimer !== this.state.isActiveTimer) {
-      if (this.state.isActiveTimer) {
-        this.startTimer()
-      } else {
-        this.stopTimer()
+  useEffect(() => {
+    if (timerDate.getTime() === 0) {
+      return undefined
+    }
+    timerId.current = setInterval(() => {
+      if (!timerPaused.current) {
+        setTimerDate((tm) => new Date(tm - 1000))
       }
-    }
-  }
+    }, 1000)
+    return () => clearInterval(timerId.current)
+  }, [])
 
-  componentWillUnmount() {
-    this.stopTimer()
-  }
+  return (
+    <li className={`${taskClass} ${filtered && 'hidden'}`}>
+      <div className="view">
+        <input
+          onChange={() => {
+            taskOnDone(key)
+          }}
+          className="toggle"
+          type="checkbox"
+          checked={done}
+        />
+        <label>
+          <span className="title">{name}</span>
 
-  startTimer = () => {
-    if (!this.intervalId) {
-      this.intervalId = setInterval(this.onTimerTick, 1000)
-    }
-  }
-
-  stopTimer = () => {
-    if (this.intervalId) {
-      clearInterval(this.intervalId)
-      this.intervalId = null
-    }
-  }
-
-  onTimerTick = () => {
-    this.setState((prevState) => ({
-      timer: prevState.timer + 1,
-    }))
-  }
-
-  pauseTimer = () => {
-    this.setState({ isActiveTimer: false })
-  }
-
-  startTimerHandler = () => {
-    this.setState({ isActiveTimer: true })
-  }
-
-  formatTime = (totalSeconds) => {
-    const minutes = Math.floor(totalSeconds / 60)
-    const seconds = totalSeconds % 60
-    return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
-  }
-
-  render() {
-    const {
-      todo: { label, completed, id, hidden, date },
-      setComplitedTask,
-      deleteItem,
-    } = this.props
-    const { timer } = this.state
-
-    return (
-      <li className={`${completed ? 'completed' : ''} ${hidden ? 'hidden' : ''}`}>
-        <div className="view">
-          <input onChange={() => setComplitedTask(id)} id={id} className="toggle" type="checkbox" />
-          <label htmlFor={id}>
-            <span className="description">{label}</span>
-            <span className="timer">
-              <button onClick={this.startTimerHandler} className="timer-start">
-                ▶
-              </button>
-              <button onClick={this.pauseTimer} className="timer-pause">
-                ⏸
-              </button>
-              <div className="timer-show">{this.formatTime(timer)}</div>
-            </span>
-            <span className="created">created {formatDistanceToNow(date)} ago</span>
-          </label>
-          <button className="icon icon-edit"></button>
-          <button onClick={() => deleteItem(id)} className="icon icon-destroy"></button>
-        </div>
-      </li>
-    )
-  }
+          <span className="description">
+            <button
+              type="button"
+              className="icon icon-play"
+              onClick={() => {
+                timerPaused.current = false
+              }}
+            />
+            <button
+              type="button"
+              className="icon icon-pause"
+              onClick={() => {
+                timerPaused.current = true
+              }}
+            />
+            {timerDate.getMinutes().toString().padStart(2, '0')}:{timerDate.getSeconds().toString().padStart(2, '0')}
+          </span>
+          <span className="description">{formatDistance(task.created, new Date(), { includeSeconds: true })}</span>
+        </label>
+        <button
+          type="button"
+          onClick={() => {
+            taskOnEdit(key)
+          }}
+          className="icon icon-edit"
+        />
+        <button
+          type="button"
+          onClick={() => {
+            taskOnDelete(key)
+          }}
+          className="icon icon-destroy"
+        />
+      </div>
+      <input
+        type="text"
+        className="edit"
+        value={changedName}
+        onChange={(e) => {
+          setChangedName(e.target.value)
+        }}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') taskNameChanged(key, e.target.value)
+          if (e.key === 'Escape') taskNameChangeCanceled(key)
+        }}
+      />
+    </li>
+  )
 }
 
 Task.propTypes = {
-  todo: PropTypes.shape({
-    label: PropTypes.string.isRequired,
-    completed: PropTypes.bool.isRequired,
-    id: PropTypes.number.isRequired,
-    hidden: PropTypes.bool.isRequired,
-    date: PropTypes.instanceOf(Date).isRequired,
-  }),
-  setComplitedTask: PropTypes.func,
-  deleteItem: PropTypes.func,
-}
-
-Task.defaultProps = {
-  todo: [],
-  setComplitedTask: () => {},
-  deleteItem: () => {},
+  filtered: PropTypes.bool,
+  task: PropTypes.shape({
+    name: PropTypes.string.isRequired,
+    done: PropTypes.bool.isRequired,
+    editing: PropTypes.bool.isRequired,
+    key: PropTypes.string.isRequired,
+    created: PropTypes.instanceOf(Date).isRequired,
+    seconds: PropTypes.number,
+  }).isRequired,
+  tasksFns: PropTypes.arrayOf(PropTypes.func).isRequired,
 }

@@ -3,44 +3,28 @@ import PropTypes from 'prop-types'
 
 import TasksFilter from '../TaskFilter'
 
-export default class Footer extends React.Component {
-  render() {
-    const { todoData, clearCompleted, allTask, activeTask, complitedTask } = this.props
-
-    const itemLeft = todoData.filter((item) => !item.completed).length
-
-    return (
-      <footer className="footer">
-        <span className="todo-count">{itemLeft} items left</span>
-        <TasksFilter allTask={allTask} activeTask={activeTask} complitedTask={complitedTask} />
-        <button onClick={clearCompleted} className="clear-completed">
-          Clear completed
-        </button>
-      </footer>
-    )
-  }
+export default function Footer({ tasksCounter, clearCompleted, onFilterSelect, selectedFilter }) {
+  return (
+    <footer className="footer">
+      <span className="todo-count">{tasksCounter} items left</span>
+      <TasksFilter onFilterSelect={onFilterSelect} selectedFilter={selectedFilter} />
+      <button type="button" onClick={clearCompleted} className="clear-completed">
+        Clear completed
+      </button>
+    </footer>
+  )
 }
 
 Footer.propTypes = {
-  todoData: PropTypes.arrayOf(
-    PropTypes.shape({
-      label: PropTypes.string.isRequired,
-      completed: PropTypes.bool.isRequired,
-      id: PropTypes.number.isRequired,
-      hidden: PropTypes.bool.isRequired,
-      date: PropTypes.instanceOf(Date).isRequired,
-    })
-  ),
+  tasksCounter: PropTypes.number,
   clearCompleted: PropTypes.func,
-  allTask: PropTypes.func,
-  activeTask: PropTypes.func,
-  complitedTask: PropTypes.func,
+  onFilterSelect: PropTypes.func,
+  selectedFilter: PropTypes.string,
 }
 
 Footer.defaultProps = {
-  todoData: [],
+  tasksCounter: 0,
   clearCompleted: () => {},
-  allTask: () => {},
-  activeTask: () => {},
-  complitedTask: () => {},
+  onFilterSelect: () => {},
+  selectedFilter: 'All',
 }
